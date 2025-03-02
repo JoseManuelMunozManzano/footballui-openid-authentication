@@ -65,3 +65,50 @@ Por último, necesitamos configurar Redis. Para ello solo necesitamos `hostname`
 Y, por último, para evitar problemas de puertos, ya que para ejecutar esta app hace falta ejecutar otros dos proyectos, haremos, en `application.yml` que el puerto de esta app sea la `9080`.
 
 Tener en cuenta que este puerto en el mismo indicado en el proyecto de `Authorization Server` y que si lo cambiamos aquí, tenemos que poner el mismo puerto en ese otro proyecto.
+
+## Como funciona
+
+Hemos protegido la aplicación usando OIDC (OpenID Connect). Es un protocolo de autenticación que se basa en OAuth2.
+
+Proporciona una forma estandarizada para los usuarios de hacer login a aplicaciones web o apps móviles usando sus cuentas existentes con IdPs (Identity Provider).
+
+Un IdP o Proveedor de Identidad es el servicio que autentica a los usuarios y emite los tokens de identidad que permiten a las aplicaciones (clientes) verificar quién es el usuario autenticado.
+
+Ejemplo: imagina que estás construyendo una aplicación web y quieres permitir que los usuarios inicien sesión con Google. En este caso:
+
+- Google es el IdP: Es quien autentica a los usuarios y proporciona información sobre su identidad
+- Tu aplicación es el Cliente OIDC: Recibe el ID Token de Google para verificar quién es el usuario
+
+En este ejercicio, usamos nuestro Authorization Server como un IdP.
+
+El servidor OIDC proporciona un Discovery Endpoint (.well-known/openid-configuration), el cual expone toda la información necesaria para que las aplicaciones cliente se configuren automáticamente.
+
+En nuestra app, usamos `authorization code grant flow` que implica los siguientes pasos.
+
+**Flujo de autorización (Authorization Code Grant Flow)**
+
+1. El cliente redirige al usuario al servidor de autorización, requiriendo los scopes
+2. El servidor de autorización autentica al usuario y pide consentimiento si es necesario
+3. El servidor de autorización redirige al usuario de vuelta al cliente con un código de autorización de corta vida. La aplicación de cliente rescata el código de autorización en el token endpoint (proporcionado por el discovery endpoint)
+   - El servidor de autorización devuelve los tokens con los scopes solicitados. Si el IdP lo requiere, el usuario debe otorgar consentimiento antes de que los tokens sean emitidos
+   - Los siguientes tokens son devueltos por el servidor de autorización:
+     - Id token que contiene la información de la sesión. Solo se usa para propósitos de autenticación
+     - Un token de acceso, que contiene información de autorización y los scopes permitidos. Se usa para acceder a recursos protegidos en APIs
+     - Un token de refresco, que se usa para solicitar un nuevo Access Token antes de que expire. No renueva el ID Token, ya que este solo es válido en la sesión de autenticación inicial.
+
+**Gestión del estado y sesiones**
+Debido a las redirecciones en OAuth2/OIDC, la aplicación cliente necesita mantener el estado del usuario.
+
+Para ello, usamos Redis como gestor de sesiones.
+
+**Orden de arranque**
+El cliente necesita acceder al Discovery Endpoint en el arranque.
+
+Por ello, debemos iniciar primero el Authorization Server y luego el cliente.
+
+**Protección de rutas**
+En nuestra aplicación, la única página accesible sin autenticación es /.
+
+Para acceder a cualquier otra página (/myself, /teams), el usuario debe estar autenticado.
+
+Si intenta acceder sin sesión, se inicia automáticamente el proceso de autorización.
