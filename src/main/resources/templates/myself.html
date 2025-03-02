@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Myself</title>
+</head>
+<body>
+    <h1>This is what we can see in your OpenId data</h1>
+    <p>Your username <span style="font-weight:bold th:text=${userName}" />! </p>
+    <p>Audience <span style="font-weight:bold th:text=${audience}" />.</p>
+    <p>Expires at <span style="font-weight:bold th:text=${expiresAt}" />.</p>
+
+    <h2>Here all the claims</h2>
+    <table>
+        <tr th:each="claim: ${claims}">
+            <td th:text="${claim.key}" />
+            <td th:text="${claim.value}" />
+        </tr>
+    </table>
+    <h2>Let's try to use your rights</h2>
+    <a href="/teams">Teams</a>
+</body>
+</html>
